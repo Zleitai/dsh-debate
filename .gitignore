@@ -1,0 +1,16 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tgz
+
+# Logs and editor junk
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+# Legacy artifacts from the earlier in-process dynamic-plugin prototype.
+# These are session-local throwaways, not part of the dsh-debate package.
+rebuild-src/
+cordis-plugins.json
+HANDOFF.md
