@@ -12,12 +12,15 @@ export default defineConfig({
   target: 'node24',
   outDir: 'lib',
   sourcemap: false,
-  external: [
-    '@deepseek-ai/cordis',
-    '@deepseek-ai/dsh-agent',
-    '@deepseek-ai/dsh-llm',
-    '@deepseek-ai/dsh-subagent',
-    '@deepseek-ai/dsh-tools',
-    '@deepseek-ai/schemastery',
-  ],
+  deps: {
+    // Peer dependencies stay external so the deployment's own node_modules resolves them.
+    neverBundle: [
+      '@deepseek-ai/cordis',
+      '@deepseek-ai/dsh-agent',
+      '@deepseek-ai/dsh-llm',
+      '@deepseek-ai/dsh-subagent',
+      '@deepseek-ai/dsh-tools',
+      '@deepseek-ai/schemastery',
+    ],
+  },
 });
