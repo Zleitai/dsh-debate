@@ -1,0 +1,10 @@
+# Source and tooling that must not ship in the npm tarball.
+# (`files` already whitelists lib/, README.md, LICENSE; this is belt-and-suspenders.)
+src/
+test/
+tsdown.config.ts
+tsconfig.json
+.github/
+node_modules/
+*.log
+.DS_Store

@@ -1,0 +1,10 @@
+# Normalize line endings across platforms; keep source/build files LF.
+* text=auto
+*.ts text eol=lf
+*.mjs text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.d.mts text eol=lf

@@ -4,6 +4,17 @@
   "description": "Multi-agent debate plugin for DeepSeek Harness: multi-round convergence, tool-verified adjudication, disagreement ledger, and human sign-off, with per-role multi-vendor model routing.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zleitai/dsh-debate.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Zleitai/dsh-debate/issues"
+  },
+  "homepage": "https://github.com/Zleitai/dsh-debate#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=24"
   },
@@ -42,7 +53,8 @@
   "scripts": {
     "test": "node --test",
     "typecheck": "tsc --noEmit",
-    "build": "tsdown"
+    "build": "tsdown",
+    "prepublishOnly": "npm run build && npm run typecheck && npm run test"
   },
   "keywords": [
     "dsh",
