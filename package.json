@@ -7,21 +7,42 @@
   "engines": {
     "node": ">=24"
   },
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./lib/index.mjs",
+  "types": "./lib/index.d.mts",
   "exports": {
-    ".": "./src/index.ts",
-    "./engine": "./src/engine/index.ts",
+    ".": {
+      "types": "./lib/index.d.mts",
+      "default": "./lib/index.mjs"
+    },
+    "./client": {
+      "types": "./lib/client.d.mts",
+      "default": "./lib/client.mjs"
+    },
+    "./engine": {
+      "types": "./lib/engine.d.mts",
+      "default": "./lib/engine.mjs"
+    },
     "./package.json": "./package.json"
   },
+  "dsh": {
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-renderer"
+      ],
+      "platform": "web"
+    }
+  },
   "files": [
-    "src",
+    "lib",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "test": "node --test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "tsdown"
   },
   "keywords": [
     "dsh",
@@ -46,6 +67,7 @@
     "@deepseek-ai/dsh-tools": "^0.1.2-rc.1",
     "@deepseek-ai/schemastery": "^3.18.2",
     "@types/node": "^24.0.0",
+    "tsdown": "^0.23.0",
     "typescript": "^5.7.0"
   }
 }
