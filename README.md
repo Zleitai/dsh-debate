@@ -53,9 +53,11 @@ The package's `prepare` script builds `lib/` automatically during a git
 install, so no manual build step is needed. In a DSH deployment, add the same
 git URL to the project dependencies, then add the composition rows below.
 
-> The `@deepseek-ai/dsh-*` peer dependencies are provided by the deployment's
-> own harness install; they are resolved from the npm `next` dist-tag
-> (`0.1.2-rc.1`).
+> The `@deepseek-ai/*` runtime packages are regular `dependencies` (pinned to
+> `0.1.2-rc.1`, the harness line they were built against), so installers that
+> do not auto-install peer dependencies (e.g. DSH profiles managed by pnpm)
+> get a working tree out of the box. When the deployment upgrades its harness
+> line, bump these pins and release a new patch version.
 
 ### Compose the Host tool (agent preset)
 
