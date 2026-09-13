@@ -35,10 +35,27 @@ test/                 # Node built-in test runner
 
 ## Install
 
+### Option A — from the npm registry (once published)
+
 ```sh
-# in the deployment that owns the harness
 dsh plugin --profile <name> add dsh-debate
+# or, in any npm project:
+npm install dsh-debate
 ```
+
+### Option B — straight from GitHub (no npm account/publish needed)
+
+```sh
+npm install git+https://github.com/Zleitai/dsh-debate.git
+```
+
+The package's `prepare` script builds `lib/` automatically during a git
+install, so no manual build step is needed. In a DSH deployment, add the same
+git URL to the project dependencies, then add the composition rows below.
+
+> The `@deepseek-ai/dsh-*` peer dependencies are provided by the deployment's
+> own harness install; they are resolved from the npm `next` dist-tag
+> (`0.1.2-rc.1`).
 
 ### Compose the Host tool (agent preset)
 
