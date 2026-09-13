@@ -158,15 +158,37 @@ function buildRoundPrompt(
   );
 }
 
+/**
+ * Map the tool's flat wire shape (`{ role, provider, model }`) to the engine's
+ * nested {@link RoleAssignment} shape (`{ role, route: { provider, model } }`).
+ * Returns `undefined` for an absent/empty/unusable list so callers fall back to
+ * the persisted defaults.
+ */
+function toRoleAssignments(input: unknown): RoleAssignment[] | undefined {
+  if (!Array.isArray(input) || input.length === 0) return undefined;
+  const assignments: RoleAssignment[] = [];
+  for (const entry of input) {
+    if (typeof entry !== 'object' || entry === null) continue;
+    const e = entry as Record<string, unknown>;
+    if (typeof e.role !== 'string' || typeof e.provider !== 'string') continue;
+    assignments.push({
+      role: e.role as RoleAssignment['role'],
+      route: {
+        provider: e.provider,
+        ...(typeof e.model === 'string' && e.model.length > 0 ? { model: e.model } : {}),
+      },
+    });
+  }
+  return assignments.length > 0 ? assignments : undefined;
+}
+
 /** Build a valid DebateConfig from persisted defaults + this run's overrides. */
 function debateConfigFrom(
   defaults: DebateDefaults,
-  args: { topic: string; rounds?: number; roles?: unknown },
+  args: { topic: string; rounds?: number; roles?: RoleAssignment[] },
   cap: number,
 ): DebateConfig {
-  const roles = Array.isArray(args.roles) && args.roles.length > 0
-    ? (args.roles as RoleAssignment[])
-    : defaults.roles;
+  const roles = args.roles !== undefined && args.roles.length > 0 ? args.roles : defaults.roles;
   const requestedRounds = typeof args.rounds === 'number' ? args.rounds : defaults.maxRounds;
   return normalizeConfig({
     topic: args.topic,
@@ -207,17 +229,16 @@ export function apply(ctx: Context, config: PluginConfig): void {
       rounds: { type: 'integer', description: 'Optional discussion-round override (defaults to persisted config).' },
       roles: {
         type: 'array',
+        description: 'Optional per-role provider/model routing override.',
         items: {
           type: 'object',
+          additionalProperties: false,
           properties: {
-            role: { type: 'string' },
-            provider: { type: 'string' },
+            role: { type: 'string', required: true },
+            provider: { type: 'string', required: true },
             model: { type: 'string' },
           },
-          required: ['role', 'provider'],
-          additionalProperties: false,
         },
-        description: 'Optional per-role provider/model routing override.',
       },
     },
     output: {
@@ -242,7 +263,11 @@ export function apply(ctx: Context, config: PluginConfig): void {
       if (parent === undefined) throw new Error('run_debate requires a calling agent');
 
       const defaults = await readDebateDefaults(workspaceFs, config.configPath);
-      const debateConfig = debateConfigFrom(defaults, args, config.maxRoundsCap);
+      const debateConfig = debateConfigFrom(
+        defaults,
+        { topic: args.topic, rounds: args.rounds, roles: toRoleAssignments(args.roles) },
+        config.maxRoundsCap,
+      );
 
       let debate = start(debateConfig);
       let roundNumber = 0;
@@ -361,17 +386,16 @@ export function apply(ctx: Context, config: PluginConfig): void {
     parameters: {
       roles: {
         type: 'array',
+        description: 'Per-role provider/model routing to persist.',
         items: {
           type: 'object',
+          additionalProperties: false,
           properties: {
-            role: { type: 'string' },
-            provider: { type: 'string' },
+            role: { type: 'string', required: true },
+            provider: { type: 'string', required: true },
             model: { type: 'string' },
           },
-          required: ['role', 'provider'],
-          additionalProperties: false,
         },
-        description: 'Per-role provider/model routing to persist.',
       },
       maxRounds: { type: 'integer', description: 'Discussion rounds to persist.' },
       requireHumanSignOff: { type: 'boolean', description: 'Whether a human must sign off the draft.' },
@@ -384,7 +408,7 @@ export function apply(ctx: Context, config: PluginConfig): void {
       const current = await readDebateDefaults(workspaceFs, config.configPath);
       const next: DebateDefaults = {
         ...current,
-        ...(Array.isArray(args.roles) ? { roles: args.roles as RoleAssignment[] } : {}),
+        ...(Array.isArray(args.roles) ? { roles: toRoleAssignments(args.roles) ?? [] } : {}),
         ...(typeof args.maxRounds === 'number' ? { maxRounds: args.maxRounds } : {}),
         ...(typeof args.requireHumanSignOff === 'boolean'
           ? { requireHumanSignOff: args.requireHumanSignOff }
