@@ -53,11 +53,9 @@ The package's `prepare` script builds `lib/` automatically during a git
 install, so no manual build step is needed. In a DSH deployment, add the same
 git URL to the project dependencies, then add the composition rows below.
 
-> The `@deepseek-ai/*` runtime packages are regular `dependencies` (pinned to
-> `0.1.2-rc.1`, the harness line they were built against), so installers that
-> do not auto-install peer dependencies (e.g. DSH profiles managed by pnpm)
-> get a working tree out of the box. When the deployment upgrades its harness
-> line, bump these pins and release a new patch version.
+> The Cordis and DSH runtime packages are `peerDependencies` pinned to the
+> harness line this plugin was built against. DSH profiles resolve them from
+> the Harness installation, keeping one shared runtime and scope registry.
 
 ### Compose the Host tool (agent preset)
 
@@ -73,14 +71,11 @@ service, so it needs no `isolate` realm):
     maxRoundsCap: 10
 ```
 
-### Compose the Client UI (host web plane)
+### Client UI
 
-Add the client entry to the deployment's web composition:
-
-```yaml
-- id: debate-client
-  name: dsh-debate/client
-```
+The package's `dsh.client` declaration exposes the browser bundle
+automatically when the `dsh-debate` agent-preset row is active. Do not mount
+`dsh-debate/client` in the host composition; that bundle runs in the browser.
 
 ## Usage
 
