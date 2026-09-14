@@ -29,6 +29,10 @@
       "types": "./lib/client.d.mts",
       "default": "./lib/client.js"
     },
+    "./web": {
+      "types": "./lib/web.d.mts",
+      "default": "./lib/web.mjs"
+    },
     "./engine": {
       "types": "./lib/engine.d.mts",
       "default": "./lib/engine.mjs"
@@ -38,8 +42,6 @@
   "dsh": {
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-connection",
-        "@deepseek-ai/dsh-client-ui-slots",
         "@deepseek-ai/dsh-client-ui-renderer"
       ],
       "platform": "web"
