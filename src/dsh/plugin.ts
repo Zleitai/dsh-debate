@@ -392,7 +392,9 @@ export function apply(ctx: Context, config: PluginConfig): void {
           parent,
           exec.signal,
         );
-        draft = drafted.text;
+        // Structured output lands in `opinion.position`; `text` may be empty for
+        // a schema-captured child. Mirror the adjudicator's fallback chain.
+        draft = drafted.opinion.position || drafted.text || verdict;
       }
       debate = produceDraft(debate, draft);
 
