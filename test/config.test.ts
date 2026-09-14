@@ -35,18 +35,32 @@ test('missing required role is reported', () => {
   assert.ok(problems.some((p) => p.includes('reviewer')));
 });
 
-test('a single provider is rejected (multi-vendor is a hard rule)', () => {
+test('a single model route is rejected (multi-model is a hard rule)', () => {
   const config = makeConfig({
     roles: [
-      { role: 'proposer', route: { provider: 'deepseek' } },
-      { role: 'opponent', route: { provider: 'deepseek' } },
-      { role: 'adjudicator', route: { provider: 'deepseek' } },
-      { role: 'reviewer', route: { provider: 'deepseek' } },
-      { role: 'drafter', route: { provider: 'deepseek' } },
+      { role: 'proposer', route: { provider: 'opencode-go', model: 'glm-5.3' } },
+      { role: 'opponent', route: { provider: 'opencode-go', model: 'glm-5.3' } },
+      { role: 'adjudicator', route: { provider: 'opencode-go', model: 'glm-5.3' } },
+      { role: 'reviewer', route: { provider: 'opencode-go', model: 'glm-5.3' } },
+      { role: 'drafter', route: { provider: 'opencode-go', model: 'glm-5.3' } },
     ],
   });
   const problems = validateConfig(config);
-  assert.ok(problems.some((p) => p.includes('at least two distinct providers')));
+  assert.ok(problems.some((p) => p.includes('at least two distinct model routes')));
+});
+
+test('two vendors on one gateway count as two routes', () => {
+  // GLM and DeepSeek both sit behind `opencode-go`; they must still qualify.
+  const config = makeConfig({
+    roles: [
+      { role: 'proposer', route: { provider: 'opencode-go', model: 'glm-5.3' } },
+      { role: 'opponent', route: { provider: 'opencode-go', model: 'deepseek-v4-flash' } },
+      { role: 'adjudicator', route: { provider: 'opencode-go', model: 'glm-5.3' } },
+      { role: 'reviewer', route: { provider: 'opencode-go', model: 'deepseek-v4-flash' } },
+      { role: 'drafter', route: { provider: 'opencode-go', model: 'deepseek-v4-flash' } },
+    ],
+  });
+  assert.deepEqual(validateConfig(config), []);
 });
 
 test('blank topic and bad maxRounds are reported', () => {

@@ -52,13 +52,19 @@ export function validateConfig(config: DebateConfig): string[] {
     if (!seen.has(required)) problems.push(`missing required role: ${required}`);
   }
 
-  const providers = new Set(
+  // Distinct MODEL routes, not distinct providers: a provider is the gateway
+  // (e.g. `opencode-go`) that may serve many vendors' models, so two vendors on
+  // one gateway genuinely can debate. A role without an explicit `model` routes
+  // as `provider::` and only counts once regardless of how many roles share it.
+  const routes = new Set(
     roles
-      .map((a) => a.route?.provider)
-      .filter((p): p is string => typeof p === 'string' && p.length > 0),
+      .filter((a) => typeof a.route?.provider === 'string' && a.route.provider.length > 0)
+      .map((a) => `${a.route.provider}::${typeof a.route.model === 'string' ? a.route.model : ''}`),
   );
-  if (providers.size < 2) {
-    problems.push('at least two distinct providers are required for a real multi-vendor debate');
+  if (routes.size < 2) {
+    problems.push(
+      'at least two distinct model routes are required (a single model arguing with itself gains little; note that two size tiers of the same model still count as one vendor in spirit — the engine cannot read vendor metadata and dedupes on the exact provider::model pair)',
+    );
   }
 
   return problems;

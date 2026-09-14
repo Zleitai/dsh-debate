@@ -43,7 +43,8 @@ function Panel(): React.ReactElement {
       React.createElement('li', null, '查看/修改配置:对助手说"看一下辩论配置",或直接说"正方用 A 模型、反方用 B 模型、裁决用 C 模型"——助手调用 debate_config 写回 .debate/config.json 并长期复用。'),
       React.createElement('li', null, '发起辩论:说"按配置跑一场辩论,主题:……"→ 助手调用 run_debate,多轮收敛后返回草稿(draft)。'),
       React.createElement('li', null, '签认/驳回:草稿出现后说"签认"或"驳回(理由)"→ 助手调用 debate_sign;签认前草稿不算最终结论。'),
-      React.createElement('li', null, '多供应商:至少 2 家已激活 provider(建议 3 家 + 1 个廉价模型做起草/摘要)。'),
+      React.createElement('li', null, '角色路由 = 网关 provider + 模型 model(如 provider=opencode-go、model=glm-5.3),不能把厂商名当 provider。'),
+      React.createElement('li', null, '至少 2 个不同模型(同一网关下的两家厂商也算;同一厂商的 flash/pro 属同门、增益有限,自行把握)。'),
     ),
   );
 }
