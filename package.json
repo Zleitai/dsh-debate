@@ -1,6 +1,6 @@
 {
   "name": "dsh-debate",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Multi-agent debate plugin for DeepSeek Harness: multi-round convergence, tool-verified adjudication, disagreement ledger, and human sign-off, with per-role multi-vendor model routing.",
   "type": "module",
   "license": "MIT",
