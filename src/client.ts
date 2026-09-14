@@ -13,12 +13,13 @@ export const name = 'dsh-debate-client';
 export const inject = ['slots'];
 
 const CSS = `
-.dbt-wrap{display:flex;flex-direction:column;gap:8px;padding:10px 12px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary,#333);border:1px solid var(--dsw-alias-border-l4,#e5e7eb);border-radius:10px;background:var(--dsw-alias-bg-base,#fff);max-width:560px;}
-.dbt-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;}
-.dbt-row{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;}
-.dbt-note{font-size:12px;opacity:.8;}
-.dbt-chip{display:inline-flex;align-items:center;gap:6px;}
-.dbt-chip-btn{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;font-size:12px;line-height:18px;border:1px solid var(--dsw-alias-border-l4,#ddd);border-radius:8px;cursor:pointer;background:var(--dsw-alias-bg-base,#fafafa);color:var(--dsw-alias-label-primary,#333);}
+.dbt-wrap{display:flex;flex-direction:column;gap:6px;padding:8px 10px;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-primary,#333);border:1px solid var(--dsw-alias-border-l4,#e5e7eb);border-radius:10px;background:var(--dsw-alias-bg-base,#fff);max-width:560px;}
+.dbt-head{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;}
+.dbt-notes{margin:0;padding-left:16px;font-size:11.5px;opacity:.85;max-height:150px;overflow-y:auto;}
+.dbt-notes li{margin:2px 0;}
+.dbt-chip{display:inline-flex;flex-direction:column;align-items:flex-start;gap:4px;max-width:340px;}
+.dbt-chip-btn{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;font-size:11.5px;line-height:18px;border:1px solid var(--dsw-alias-border-l4,#ddd);border-radius:8px;cursor:pointer;background:var(--dsw-alias-bg-base,#fafafa);color:var(--dsw-alias-label-primary,#333);}
+.dbt-chip-btn:hover{border-color:var(--dsw-alias-state-business-primary,#2f81f7);}
 `;
 
 function ensureCss(): void {
@@ -37,17 +38,43 @@ function Panel(): React.ReactElement {
     { className: 'dbt-wrap' },
     React.createElement('div', { className: 'dbt-head' }, '多智能体辩论'),
     React.createElement(
-      'div',
-      { className: 'dbt-note' },
-      '配置与发起都在对话里完成:',
-    ),
-    React.createElement(
       'ul',
-      { className: 'dbt-note' },
-      React.createElement('li', null, '查看/修改配置:对助手说"用 debate_config 看一下辩论配置",或直接说"正方用 GPT、反方用 Claude、裁决用 DeepSeek"——助手会写回 .debate/config.json 并长期复用。'),
-      React.createElement('li', null, '发起辩论:说"按配置跑一场辩论,主题:……",助手会调用 run_debate,多轮收敛后返回草稿(draft)。'),
-      React.createElement('li', null, '签认/驳回:草稿出现后,说"签认"或"驳回(理由)"——助手会调用 debate_sign;在签认前草稿不会被视为最终结论。'),
-      React.createElement('li', null, '多供应商:至少需要 2 家已激活的 provider(建议 3 家 + 1 个廉价模型担任起草/摘要)。'),
+      { className: 'dbt-notes' },
+      React.createElement('li', null, '查看/修改配置:对助手说"看一下辩论配置",或直接说"正方用 A 模型、反方用 B 模型、裁决用 C 模型"——助手调用 debate_config 写回 .debate/config.json 并长期复用。'),
+      React.createElement('li', null, '发起辩论:说"按配置跑一场辩论,主题:……"→ 助手调用 run_debate,多轮收敛后返回草稿(draft)。'),
+      React.createElement('li', null, '签认/驳回:草稿出现后说"签认"或"驳回(理由)"→ 助手调用 debate_sign;签认前草稿不算最终结论。'),
+      React.createElement('li', null, '多供应商:至少 2 家已激活 provider(建议 3 家 + 1 个廉价模型做起草/摘要)。'),
+    ),
+  );
+}
+
+/** One-line capsule for the composer dock; expands to the notes on demand. */
+function Capsule(): React.ReactElement {
+  const [open, setOpen] = React.useState(false);
+  if (!open) {
+    return React.createElement(
+      'div',
+      { className: 'dbt-chip' },
+      React.createElement(
+        'button',
+        {
+          type: 'button',
+          className: 'dbt-chip-btn',
+          title: '展开多智能体辩论说明',
+          onClick: () => setOpen(true),
+        },
+        '⚙ 多智能体辩论',
+      ),
+    );
+  }
+  return React.createElement(
+    'div',
+    { className: 'dbt-chip' },
+    React.createElement(Panel),
+    React.createElement(
+      'button',
+      { type: 'button', className: 'dbt-chip-btn', onClick: () => setOpen(false) },
+      '收起',
     ),
   );
 }
@@ -56,7 +83,7 @@ export function apply(ctx: any): void {
   const slots = ctx.slots;
   ensureCss();
 
-  // Settings section entry.
+  // Settings section: the full notes live here.
   slots.inject('settings.section', () =>
     slots.register(
       { name: 'settings.section', id: 'dsh-debate', label: '多智能体辩论', order: 90 },
@@ -64,11 +91,11 @@ export function apply(ctx: any): void {
     ),
   );
 
-  // Composer dock capsule.
+  // Composer dock: one compact capsule that expands on click.
   slots.inject('conversation.composer.dock', () =>
     slots.register(
       { name: 'conversation.composer.dock', id: 'dsh-debate', order: 100, label: '多智能体辩论' },
-      () => React.createElement(Panel),
+      () => React.createElement(Capsule),
     ),
   );
 }
