@@ -203,6 +203,22 @@ function debateConfigFrom(
 }
 
 export function apply(ctx: Context, config: PluginConfig): void {
+  // This package is mounted TWICE, on purpose:
+  //
+  //  - On the host web plane (a loose row in the profile composition) it exists
+  //    only so `dsh-client-modules` — which scans HOST Loader entries and keys
+  //    them by BARE package name — discovers the `dsh.client` declaration and
+  //    serves the browser bundle for the panel. That mount has no Agent, and it
+  //    must NOT register the debate tools: they belong to the agent plane, and
+  //    a second registration of the same tool name collides.
+  //  - On the agent plane (the preset row) it registers `run_debate`,
+  //    `debate_config`, and `debate_sign` for that session.
+  //
+  // A subpath row (`dsh-debate/web`) would NOT work: client-modules rejects any
+  // specifier containing "/" that is not a bare "@scope/name".
+  const mountedForAgent = (ctx as unknown as { agent?: unknown }).agent !== undefined;
+  if (!mountedForAgent) return;
+
   // Best-effort workspace-relative persistence through the host filesystem.
   // A proper workspace resolution (via the parent session) is a follow-up.
   const resolvePath = (rel: string): string => path.resolve(process.cwd(), rel);

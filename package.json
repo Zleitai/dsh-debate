@@ -29,10 +29,6 @@
       "types": "./lib/client.d.mts",
       "default": "./lib/client.js"
     },
-    "./web": {
-      "types": "./lib/web.d.mts",
-      "default": "./lib/web.mjs"
-    },
     "./engine": {
       "types": "./lib/engine.d.mts",
       "default": "./lib/engine.mjs"

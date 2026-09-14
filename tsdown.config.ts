@@ -20,7 +20,6 @@ export default defineConfig([
     entry: {
       index: 'src/index.ts',
       client: 'src/client.ts',
-      web: 'src/web.ts',
       engine: 'src/engine/index.ts',
     },
     format: ['esm'],
