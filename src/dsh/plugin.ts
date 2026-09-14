@@ -34,6 +34,8 @@ export interface PluginConfig {
   subagentProvider: string;
   configPath: string;
   maxRoundsCap: number;
+  /** When false (the host web-plane row), register nothing and only carry the `dsh.client` declaration. */
+  registerTools: boolean;
 }
 
 export const Config = z.object({
@@ -43,6 +45,8 @@ export const Config = z.object({
   configPath: z.string().default('.debate/config.json'),
   /** Hard cap on discussion rounds, even when the persisted config asks for more. */
   maxRoundsCap: z.number().step(1).min(1).default(10),
+  /** The host web-plane row sets this false: it exists only to expose the browser bundle. */
+  registerTools: z.boolean().default(true),
 });
 
 const ROLE_DESCRIPTIONS: Record<RoleAssignment['role'], string> = {
@@ -216,25 +220,30 @@ export function apply(ctx: Context, config: PluginConfig): void {
   //
   // A subpath row (`dsh-debate/web`) would NOT work: client-modules rejects any
   // specifier containing "/" that is not a bare "@scope/name".
-  const mountedForAgent = (ctx as unknown as { agent?: unknown }).agent !== undefined;
-  if (!mountedForAgent) return;
+  //
+  // Important: do not key off `ctx.agent` here. A preset's standing mount has no
+  // Agent at apply time either (tools register into the preset's scoped layer
+  // directly); that check silently disabled the tools in every debate session.
+  if (config.registerTools === false) return;
 
-  // Best-effort workspace-relative persistence through the host filesystem.
-  // A proper workspace resolution (via the parent session) is a follow-up.
-  const resolvePath = (rel: string): string => path.resolve(process.cwd(), rel);
-  const workspaceFs: HostFs = {
+  // Persistence is resolved against the SESSION's working directory (the agent's
+  // `session.header.cwd`), not `process.cwd()` — the latter is the host process's
+  // cwd and would write the config somewhere the session never reads.
+  const workspaceFsFor = (cwd: string): HostFs => ({
     async readText(rel) {
       try {
-        return await fsPromises.readFile(resolvePath(rel), 'utf8');
+        return await fsPromises.readFile(path.resolve(cwd, rel), 'utf8');
       } catch {
         return null;
       }
     },
     async writeText(rel, text) {
-      await fsPromises.mkdir(path.dirname(resolvePath(rel)), { recursive: true });
-      await fsPromises.writeFile(resolvePath(rel), text, 'utf8');
+      await fsPromises.mkdir(path.dirname(path.resolve(cwd, rel)), { recursive: true });
+      await fsPromises.writeFile(path.resolve(cwd, rel), text, 'utf8');
     },
-  };
+  });
+  const agentCwd = (agent: { session?: { header?: { cwd?: string } } }): string =>
+    agent?.session?.header?.cwd ?? process.cwd();
 
   // The most recent draft awaiting the human sign-off gate (`debate_sign`).
   let latest: { topic: string; verdict: string; signOff: SignOff } | undefined;
@@ -283,7 +292,7 @@ export function apply(ctx: Context, config: PluginConfig): void {
       const parent = exec.agent;
       if (parent === undefined) throw new Error('run_debate requires a calling agent');
 
-      const defaults = await readDebateDefaults(workspaceFs, config.configPath);
+      const defaults = await readDebateDefaults(workspaceFsFor(agentCwd(parent as never)), config.configPath);
       const debateConfig = debateConfigFrom(
         defaults,
         { topic: args.topic, rounds: args.rounds, roles: toRoleAssignments(args.roles) },
@@ -428,8 +437,9 @@ export function apply(ctx: Context, config: PluginConfig): void {
       schema: { type: 'json' },
       render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
     },
-    async execute(args) {
-      const current = await readDebateDefaults(workspaceFs, config.configPath);
+    async execute(args, exec) {
+      const cwd = agentCwd(exec?.agent as never);
+      const current = await readDebateDefaults(workspaceFsFor(cwd), config.configPath);
       const next: DebateDefaults = {
         ...current,
         ...(Array.isArray(args.roles) ? { roles: toRoleAssignments(args.roles) ?? [] } : {}),
@@ -438,7 +448,7 @@ export function apply(ctx: Context, config: PluginConfig): void {
           ? { requireHumanSignOff: args.requireHumanSignOff }
           : {}),
       };
-      await workspaceFs.writeText(config.configPath, `${JSON.stringify(next, null, 2)}\n`);
+      await workspaceFsFor(cwd).writeText(config.configPath, `${JSON.stringify(next, null, 2)}\n`);
       return JSON.parse(JSON.stringify({ defaults: next }));
     },
   }));
