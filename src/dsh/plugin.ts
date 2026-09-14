@@ -14,6 +14,8 @@ import {
   adjudicate,
   produceDraft,
 } from '../engine/debate.ts';
+import { sign, reject } from '../engine/signoff.ts';
+import type { SignOff } from '../engine/signoff.ts';
 import { normalizeConfig } from '../engine/config.ts';
 import { openDisagreements } from '../engine/ledger.ts';
 import type { DebateConfig, Disagreement, RoleAssignment } from '../engine/types.ts';
@@ -218,12 +220,15 @@ export function apply(ctx: Context, config: PluginConfig): void {
     },
   };
 
+  // The most recent draft awaiting the human sign-off gate (`debate_sign`).
+  let latest: { topic: string; verdict: string; signOff: SignOff } | undefined;
+
   ctx.tools.register(defineTool({
     name: 'run_debate',
     description:
       'Run a multi-agent debate to convergence, adjudicate each open disagreement, and produce a final draft. ' +
       'Roles run on distinct providers/models from the persisted config (or the optional `roles` override). ' +
-      'With human sign-off enabled the returned status is "draft"; the user then accepts or rejects via the UI.',
+      'With human sign-off enabled the returned status is "draft"; the user then signs or rejects it in chat (the agent relays that explicit decision through `debate_sign`).',
     parameters: {
       topic: { type: 'string', required: true, description: 'The proposition to debate.' },
       rounds: { type: 'integer', description: 'Optional discussion-round override (defaults to persisted config).' },
@@ -366,6 +371,9 @@ export function apply(ctx: Context, config: PluginConfig): void {
       }
       debate = produceDraft(debate, draft);
 
+      // Keep the latest draft for the human sign-off gate (`debate_sign`).
+      latest = { topic: debateConfig.topic, verdict, signOff: debate.signOff };
+
       return {
         topic: debateConfig.topic,
         phase: debate.discussion.round >= debateConfig.maxRounds ? 'round-cap' : 'converged',
@@ -416,6 +424,44 @@ export function apply(ctx: Context, config: PluginConfig): void {
       };
       await workspaceFs.writeText(config.configPath, `${JSON.stringify(next, null, 2)}\n`);
       return JSON.parse(JSON.stringify({ defaults: next }));
+    },
+  }));
+
+  // The human sign-off gate. The user never signs through the model; the model
+  // only relays an explicit sign/reject instruction the human already gave.
+  ctx.tools.register(defineTool({
+    name: 'debate_sign',
+    description:
+      'Apply the human decision on the most recent debate draft: sign it as final, or reject it (with a reason) so it can be revised and re-presented. Call this ONLY after the user explicitly says to sign or reject the draft; never decide on the user\'s behalf.',
+    parameters: {
+      decision: { type: 'string', required: true, enum: ['sign', 'reject'], description: 'The user\'s explicit decision.' },
+      note: { type: 'string', description: 'Optional sign-off note or rejection reason.' },
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          state: { type: 'string' },
+          topic: { type: 'string' },
+          note: { type: 'string' },
+        },
+      },
+      render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
+    },
+    async execute(args) {
+      const current = latest;
+      if (current === undefined) throw new Error('no debate draft awaiting sign-off; run a debate first');
+      const nextSignOff =
+        args.decision === 'sign'
+          ? sign(current.signOff, args.note)
+          : reject(current.signOff, args.note ?? 'rejected by the user');
+      latest = { ...current, signOff: nextSignOff };
+      return {
+        state: nextSignOff.state,
+        topic: current.topic,
+        note: nextSignOff.note ?? '',
+      };
     },
   }));
 }

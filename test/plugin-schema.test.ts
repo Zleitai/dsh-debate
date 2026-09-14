@@ -28,10 +28,10 @@ function mountWithStubContext(): unknown[] {
   return registered;
 }
 
-test('applying the plugin registers both tools with DSL-valid schemas', () => {
+test('applying the plugin registers all three tools with DSL-valid schemas', () => {
   const registered = mountWithStubContext();
-  assert.equal(registered.length, 2, 'run_debate and debate_config must both register');
+  assert.equal(registered.length, 3, 'run_debate, debate_config and debate_sign must all register');
 
   const names = registered.map((tool) => (tool as { name?: string }).name);
-  assert.deepEqual(names, ['run_debate', 'debate_config']);
+  assert.deepEqual(names, ['run_debate', 'debate_config', 'debate_sign']);
 });

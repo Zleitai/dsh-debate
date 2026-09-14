@@ -27,7 +27,7 @@
     },
     "./client": {
       "types": "./lib/client.d.mts",
-      "default": "./lib/client.mjs"
+      "default": "./lib/client.js"
     },
     "./engine": {
       "types": "./lib/engine.d.mts",
@@ -53,7 +53,7 @@
   "scripts": {
     "test": "node --test",
     "typecheck": "tsc --noEmit",
-    "build": "tsdown",
+    "build": "tsdown && node scripts/wrap-client.mjs",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build && npm run typecheck && npm run test"
   },
@@ -76,6 +76,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "@types/react": "~18.3.1",
+    "react": "^18.2.0",
     "tsdown": "^0.23.0",
     "typescript": "^5.7.0"
   }
